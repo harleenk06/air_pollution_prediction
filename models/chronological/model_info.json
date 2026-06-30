@@ -1,0 +1,27 @@
+{
+  "best_model_name": "xgboost_tuned",
+  "r2_score": 0.8424,
+  "mae": 9.9297,
+  "rmse": 15.8233,
+  "best_params": {
+    "subsample": 0.8,
+    "n_estimators": 200,
+    "min_child_weight": 3,
+    "max_depth": 9,
+    "learning_rate": 0.05,
+    "colsample_bytree": 0.8
+  },
+  "features": [
+    "City",
+    "Temperature",
+    "Humidity",
+    "Wind_Speed",
+    "AOD",
+    "Year",
+    "Month",
+    "Day",
+    "Hour",
+    "DayOfWeek",
+    "Is_Weekend"
+  ]
+}
