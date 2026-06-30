@@ -20,7 +20,7 @@ test_df  = df.iloc[split_idx:]
 print(f"Train rows : {len(train_df)}  ({train_df['Year'].min()} to {train_df['Year'].max()})")
 print(f"Test rows  : {len(test_df)}   ({test_df['Year'].min()} to {test_df['Year'].max()})\n")
 
-# ── 4. Separate features and target ───────────────────────────────────────
+#  Separate features and target 
 TARGET = 'PM25'
 
 X_train = train_df.drop(columns=[TARGET])
@@ -29,7 +29,7 @@ y_train = train_df[TARGET]
 X_test  = test_df.drop(columns=[TARGET])
 y_test  = test_df[TARGET]
 
-# ── 5. Save to a new folder — originals stay untouched ────────────────────
+#  5. Save to a new folder — originals stay untouched 
 import os
 os.makedirs('dataset/processed/chronological', exist_ok=True)
 
