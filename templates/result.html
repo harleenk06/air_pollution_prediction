@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroSense — Air Quality Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+
+    <div class="container result-container">
+        <a href="/" class="btn-back">← Predict Another City</a>
+
+        <header class="result-header">
+            <div class="city-flag">🇮🇳</div>
+            <h1 class="city-name" id="city-name">—</h1>
+            <p class="result-subtitle">Air Quality Report</p>
+        </header>
+
+        <div class="card gauge-card fade-in" style="--delay:0.1s">
+            <div class="gauge-wrapper">
+                <svg class="gauge-svg" viewBox="0 0 200 120">
+                    <path d="M 20 100 A 80 80 0 0 1 180 100"
+                          fill="none" stroke="rgba(255,255,255,0.08)"
+                          stroke-width="14" stroke-linecap="round"/>
+                    <path id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100"
+                          fill="none" stroke="#10b981" stroke-width="14"
+                          stroke-linecap="round" stroke-dasharray="0 251"
+                          style="transition: stroke-dasharray 1.5s ease, stroke 0.5s ease;"/>
+                    <line id="gauge-needle"
+                          x1="100" y1="100" x2="100" y2="30"
+                          stroke="white" stroke-width="2.5" stroke-linecap="round"
+                          style="transform-origin: 100px 100px; transition: transform 1.5s ease;"/>
+                    <circle cx="100" cy="100" r="6" fill="white" opacity="0.9"/>
+                </svg>
+                <div class="gauge-center">
+                    <div class="pm25-number" id="pm25-number">0</div>
+                    <div class="pm25-unit">μg/m³ PM2.5</div>
+                </div>
+            </div>
+
+            <div class="aqi-badge" id="aqi-badge">—</div>
+            <p class="aqi-message" id="aqi-message">—</p>
+
+            <div class="scale-bar-wrapper">
+                <div class="scale-bar">
+                    <div class="scale-marker" id="scale-marker"></div>
+                </div>
+                <div class="scale-labels">
+                    <span>Good</span>
+                    <span>Moderate</span>
+                    <span>USG</span>
+                    <span>Unhealthy</span>
+                    <span>Very</span>
+                    <span>Hazardous</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card summary-card fade-in" style="--delay:0.2s">
+            <h3 class="section-title">📊 Analysis Parameters</h3>
+            <div class="summary-grid" id="summary-grid"></div>
+        </div>
+
+        <div class="card advisory-card fade-in" style="--delay:0.3s">
+            <h3 class="section-title terminal-title">> GEMINI AI HEALTH ADVISORY</h3>
+            <div class="terminal-body">
+                <p class="terminal-text" id="advisory-text"><span class="cursor">█</span></p>
+            </div>
+        </div>
+
+        <div class="card map-card fade-in" style="--delay:0.4s">
+            <h3 class="section-title">🗺️ Location Map</h3>
+            <div id="map"></div>
+        </div>
+
+        <footer class="footer">
+            © 2026 AeroSense &nbsp;•&nbsp; Powered by XGBoost AI + Gemini &nbsp;•&nbsp; 🇮🇳 India
+        </footer>
+    </div>
+
+    <div id="hazard-overlay" style="display:none;" class="hazard-overlay"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <script>
+        const canvas = document.getElementById('starfield');
+        const ctx    = canvas.getContext('2d');
+        let stars    = [];
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 250; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.4 + 0.3,
+                    speed: Math.random() * 0.25 + 0.05,
+                    t: Math.random() * Math.PI * 2
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => {
+                s.t += 0.018; s.y += s.speed;
+                if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+                const op = 0.3 + Math.abs(Math.sin(s.t)) * 0.65;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${op})`; ctx.fill();
+            });
+            requestAnimationFrame(drawStars);
+        }
+        resizeCanvas(); createStars(); drawStars();
+        window.addEventListener('resize', () => { resizeCanvas(); createStars(); });
+
+        const CITIES = {
+            "delhi":     { lat: 28.6139, lng: 77.2090 },
+            "lucknow":   { lat: 26.8467, lng: 80.9462 },
+            "kanpur":    { lat: 26.4499, lng: 80.3319 },
+            "patna":     { lat: 25.5941, lng: 85.1376 },
+            "kolkata":   { lat: 22.5726, lng: 88.3639 },
+            "mumbai":    { lat: 19.0760, lng: 72.8777 },
+            "bengaluru": { lat: 12.9716, lng: 77.5946 },
+            "chennai":   { lat: 13.0827, lng: 80.2707 },
+            "hyderabad": { lat: 17.3850, lng: 78.4867 },
+            "ahmedabad": { lat: 23.0225, lng: 72.5714 }
+        };
+
+        const raw = sessionStorage.getItem('aerosense_result');
+        if (!raw) { window.location.href = '/'; }
+        const result = JSON.parse(raw);
+
+        const COLOR_MAP = {
+            'Good':                           '#10b981',
+            'Moderate':                       '#f59e0b',
+            'Unhealthy for Sensitive Groups': '#f97316',
+            'Unhealthy':                      '#ef4444',
+            'Very Unhealthy':                 '#8b5cf6',
+            'Hazardous':                      '#991b1b'
+        };
+        const color = COLOR_MAP[result.category] || '#06b6d4';
+
+        document.getElementById('city-name').textContent = result.city + ' 🇮🇳';
+
+        const badge = document.getElementById('aqi-badge');
+        badge.textContent      = result.category;
+        badge.style.background = color;
+        badge.style.boxShadow  = `0 0 24px ${color}88`;
+        document.getElementById('aqi-message').textContent = result.message;
+
+        // PM2.5 Counter
+        const target   = result.pm25;
+        const numEl    = document.getElementById('pm25-number');
+        const duration = 1800;
+        let start      = null;
+        function countUp(ts) {
+            if (!start) start = ts;
+            const pct  = Math.min((ts - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - pct, 3);
+            numEl.textContent = Math.round(target * ease);
+            if (pct < 1) requestAnimationFrame(countUp);
+            else numEl.textContent = target;
+        }
+        requestAnimationFrame(countUp);
+
+        // Gauge
+        const fraction = Math.min(target / 300, 1);
+        setTimeout(() => {
+            const arc    = document.getElementById('gauge-arc');
+            const needle = document.getElementById('gauge-needle');
+            arc.style.strokeDasharray = `${fraction * 251} 251`;
+            arc.style.stroke          = color;
+            needle.style.transform    = `rotate(${-90 + (fraction * 180)}deg)`;
+        }, 200);
+
+        // Scale marker
+        setTimeout(() => {
+            const marker           = document.getElementById('scale-marker');
+            marker.style.left      = Math.min((target / 350) * 100, 100) + '%';
+            marker.style.background = color;
+            marker.style.boxShadow = `0 0 10px ${color}`;
+        }, 300);
+
+        // Summary
+        const inp   = result.inputs;
+        const items = [
+            { icon: '🛰️', label: 'AOD',         value: inp.aod ?? inp.AOD },
+            { icon: '🌡️', label: 'Temperature', value: (inp.temperature ?? inp.Temperature) + ' °C' },
+            { icon: '💧', label: 'Humidity',    value: (inp.humidity ?? inp.Humidity) + ' %' },
+            { icon: '💨', label: 'Wind Speed',  value: (inp.wind_speed ?? inp.Wind_Speed) + ' m/s' },
+        ];
+        const grid = document.getElementById('summary-grid');
+        items.forEach(item => {
+            const d = document.createElement('div');
+            d.className = 'summary-item';
+            d.innerHTML = `<span class="s-icon">${item.icon}</span>
+                           <span class="s-label">${item.label}</span>
+                           <span class="s-value">${item.value}</span>`;
+            grid.appendChild(d);
+        });
+
+        // Map
+        const cityKey = result.city.toLowerCase();
+        const coords  = CITIES[cityKey] || { lat: 20.5937, lng: 78.9629 };
+        const map     = L.map('map').setView([coords.lat, coords.lng], 8);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap © CARTO'
+        }).addTo(map);
+        L.circleMarker([coords.lat, coords.lng], {
+            radius: 16, fillColor: color, color: color,
+            weight: 2, opacity: 1, fillOpacity: 0.5
+        }).addTo(map)
+          .bindPopup(`<b>${result.city}</b><br>PM2.5: ${result.pm25} μg/m³<br>${result.category}`)
+          .openPopup();
+
+        // AI Advisory
+const advEl = document.getElementById('advisory-text');
+fetch('/health-advice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pm25: result.pm25, city: result.city, category: result.category })
+})
+.then(r => r.json())
+.then(data => {
+    const text = data.success ? data.advice : 'AI advice currently unavailable.';
+    advEl.innerHTML = '';
+    let i = 0;
+    function typeChar() {
+        if (i < text.length) {
+            advEl.innerHTML = text.substring(0, i + 1) + '<span class="cursor">█</span>';
+            i++;
+            setTimeout(typeChar, 18);
+        } else {
+            advEl.innerHTML = text;
+        }
+    }
+    typeChar();
+});
+
+        // Special effects
+        if (result.category === 'Good') {
+            setTimeout(() => confetti({ particleCount: 150, spread: 80, origin: { y: 0.4 } }), 1500);
+        }
+        if (result.category === 'Hazardous') {
+            const h = document.getElementById('hazard-overlay');
+            h.style.display = 'block';
+            setTimeout(() => h.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>
