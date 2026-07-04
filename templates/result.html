@@ -182,10 +182,10 @@
 
         // Scale marker
         setTimeout(() => {
-            const marker           = document.getElementById('scale-marker');
-            marker.style.left      = Math.min((target / 350) * 100, 100) + '%';
+            const marker            = document.getElementById('scale-marker');
+            marker.style.left       = Math.min((target / 350) * 100, 100) + '%';
             marker.style.background = color;
-            marker.style.boxShadow = `0 0 10px ${color}`;
+            marker.style.boxShadow  = `0 0 10px ${color}`;
         }, 300);
 
         // Summary
@@ -220,29 +220,37 @@
           .bindPopup(`<b>${result.city}</b><br>PM2.5: ${result.pm25} μg/m³<br>${result.category}`)
           .openPopup();
 
-        // AI Advisory
-const advEl = document.getElementById('advisory-text');
-fetch('/health-advice', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pm25: result.pm25, city: result.city, category: result.category })
-})
-.then(r => r.json())
-.then(data => {
-    const text = data.success ? data.advice : 'AI advice currently unavailable.';
-    advEl.innerHTML = '';
-    let i = 0;
-    function typeChar() {
-        if (i < text.length) {
-            advEl.innerHTML = text.substring(0, i + 1) + '<span class="cursor">█</span>';
-            i++;
-            setTimeout(typeChar, 18);
-        } else {
-            advEl.innerHTML = text;
-        }
-    }
-    typeChar();
-});
+        // ── AI Advisory (FIXED — now sends all inputs to Gemini) ──
+        const advEl = document.getElementById('advisory-text');
+        fetch('/health-advice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                pm25:        result.pm25,
+                city:        result.city,
+                category:    result.category,
+                aod:         result.inputs.AOD         ?? result.inputs.aod,
+                temperature: result.inputs.Temperature ?? result.inputs.temperature,
+                humidity:    result.inputs.Humidity    ?? result.inputs.humidity,
+                wind_speed:  result.inputs.Wind_Speed  ?? result.inputs.wind_speed
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const text = data.success ? data.advice : 'AI advice currently unavailable.';
+            advEl.innerHTML = '';
+            let i = 0;
+            function typeChar() {
+                if (i < text.length) {
+                    advEl.innerHTML = text.substring(0, i + 1) + '<span class="cursor">█</span>';
+                    i++;
+                    setTimeout(typeChar, 18);
+                } else {
+                    advEl.innerHTML = text;
+                }
+            }
+            typeChar();
+        });
 
         // Special effects
         if (result.category === 'Good') {

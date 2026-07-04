@@ -114,6 +114,22 @@ tuned_model = search.best_estimator_
 #Evaluating the tuned model
 tuned_preds = evaluate("XGBoost (Tuned)", tuned_model, X_test, y_test)
 
+# Debug prediction distribution
+
+preds = tuned_model.predict(X_test)
+
+print("\n===== Prediction Statistics =====")
+
+print("Min :", preds.min())
+
+print("Max :", preds.max())
+
+print("Mean:", preds.mean())
+
+print("Std :", preds.std())
+
+print("=================================\n")
+
 tuned_r2   = r2_score(y_test, tuned_preds)
 tuned_mae  = mean_absolute_error(y_test, tuned_preds)
 tuned_rmse = np.sqrt(mean_squared_error(y_test, tuned_preds))
