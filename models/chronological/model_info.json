@@ -1,8 +1,8 @@
 {
   "best_model_name": "xgboost_tuned",
-  "r2_score": 0.8479,
-  "mae": 9.779,
-  "rmse": 15.544,
+  "r2_score": 0.8424,
+  "mae": 9.9297,
+  "rmse": 15.8233,
   "best_params": {
     "subsample": 0.8,
     "n_estimators": 200,
