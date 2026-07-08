@@ -16,7 +16,7 @@
         <a href="/" class="btn-back">← Predict Another City</a>
 
         <header class="result-header">
-            <div class="city-flag">🇮🇳</div>
+            
             <h1 class="city-name" id="city-name">—</h1>
             <p class="result-subtitle">Air Quality Report</p>
         </header>
@@ -147,7 +147,7 @@
         };
         const color = COLOR_MAP[result.category] || '#06b6d4';
 
-        document.getElementById('city-name').textContent = result.city + ' 🇮🇳';
+        document.getElementById('city-name').textContent = result.city ;
 
         const badge = document.getElementById('aqi-badge');
         badge.textContent      = result.category;
