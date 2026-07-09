@@ -182,11 +182,32 @@
 
         // Scale marker
         setTimeout(() => {
-            const marker            = document.getElementById('scale-marker');
-            marker.style.left       = Math.min((target / 350) * 100, 100) + '%';
-            marker.style.background = color;
-            marker.style.boxShadow  = `0 0 10px ${color}`;
-        }, 300);
+    const marker = document.getElementById('scale-marker');
+
+    let pos;
+
+    if (target <= 12)
+        pos = (target / 12) * 20;
+
+    else if (target <= 35.4)
+        pos = 20 + ((target - 12) / (35.4 - 12)) * 15;
+
+    else if (target <= 55.4)
+        pos = 35 + ((target - 35.4) / (55.4 - 35.4)) * 20;
+
+    else if (target <= 150.4)
+        pos = 55 + ((target - 55.4) / (150.4 - 55.4)) * 20;
+
+    else if (target <= 250.4)
+        pos = 75 + ((target - 150.4) / (250.4 - 150.4)) * 15;
+
+    else
+        pos = Math.min(90 + ((target - 250.4) / 100) * 10, 100);
+
+    marker.style.left = pos + "%";
+    marker.style.background = color;
+    marker.style.boxShadow = `0 0 10px ${color}`;
+}, 300);
 
         // Summary
         const inp   = result.inputs;
