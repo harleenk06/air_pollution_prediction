@@ -27,7 +27,7 @@ print(f"Expected features: {FEATURES}\n")
 
 
 # ==========================
-# AQI Category
+# pm2.5 health category
 # ==========================
 
 def get_aqi_category(pm25):
